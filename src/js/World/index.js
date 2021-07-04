@@ -2,7 +2,8 @@ import { AxesHelper, Object3D } from 'three'
 
 import AmbientLightSource from './AmbientLight'
 import PointLightSource from './PointLight'
-import Suzanne from './Suzanne'
+import RectLight from './RectLight'
+import Floor from './Floor'
 
 export default class World {
   constructor(options) {
@@ -10,6 +11,7 @@ export default class World {
     this.time = options.time
     this.debug = options.debug
     this.assets = options.assets
+    this.camera = options.camera
 
     // Set up
     this.container = new Object3D()
@@ -24,9 +26,10 @@ export default class World {
     this.setLoader()
   }
   init() {
-    this.setAmbientLight()
-    this.setPointLight()
-    this.setSuzanne()
+    // this.setAmbientLight()
+    // this.setPointLight()
+    this.setRectLight()
+    this.setFloor()
   }
   setLoader() {
     this.loadDiv = document.querySelector('.loadScreen')
@@ -67,11 +70,16 @@ export default class World {
     })
     this.container.add(this.light.container)
   }
-  setSuzanne() {
-    this.suzanne = new Suzanne({
+  setRectLight() {
+    this.rectLight = new RectLight({
       time: this.time,
+      camera: this.camera,
       assets: this.assets,
     })
-    this.container.add(this.suzanne.container)
+    this.container.add(this.rectLight.container)
+  }
+  setFloor() {
+    this.floor = new Floor()
+    this.container.add(this.floor.container)
   }
 }

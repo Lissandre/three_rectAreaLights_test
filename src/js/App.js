@@ -1,4 +1,8 @@
-import { Scene, sRGBEncoding, WebGLRenderer } from 'three'
+import { Scene, sRGBEncoding, ReinhardToneMapping, Vector2, WebGLRenderer } from 'three'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass'
+
 import * as dat from 'dat.gui'
 
 import Sizes from '@tools/Sizes'
@@ -18,9 +22,17 @@ export default class App {
     this.sizes = new Sizes()
     this.assets = new Assets()
 
+    this.params = {
+      exposure: 0.93,
+      bloomStrength: 1.2,
+      bloomThreshold: 0,
+      bloomRadius: 0.49,
+    }
+
     this.setConfig()
     this.setRenderer()
     this.setCamera()
+    this.setComposer()
     this.setWorld()
   }
   setRenderer() {
@@ -34,9 +46,10 @@ export default class App {
       powerPreference: 'high-performance',
     })
     this.renderer.outputEncoding = sRGBEncoding
+    this.renderer.toneMapping = ReinhardToneMapping
     this.renderer.gammaFactor = 2.2
     // Set background color
-    this.renderer.setClearColor(0x212121, 1)
+    this.renderer.setClearColor(0x000000, 1)
     // Set renderer pixel ratio & sizes
     this.renderer.setPixelRatio(window.devicePixelRatio)
     this.renderer.setSize(this.sizes.viewport.width, this.sizes.viewport.height)
@@ -46,25 +59,19 @@ export default class App {
         this.sizes.viewport.width,
         this.sizes.viewport.height
       )
+      this.composer?.setSize(
+        this.sizes.viewport.width,
+        this.sizes.viewport.height
+      )
     })
     // Set RequestAnimationFrame with 60fps
     this.time.on('tick', () => {
-      // When tab is not visible (tab is not active or window is minimized), browser stops requesting animation frames. Thus, this does not work
-      // if the window is only in the background without focus (for example, if you select another window without minimizing the browser one), 
-      // which might cause some performance or batteries issues when testing on multiple browsers
-      if (!(this.renderOnBlur?.activated && !document.hasFocus() ) ) {
+      if (this.composer) {
+        this.composer.render()
+      } else {
         this.renderer.render(this.scene, this.camera.camera)
       }
     })
-
-    if (this.debug) {
-      this.renderOnBlur = { activated: true }
-      const folder = this.debug.addFolder('Renderer')
-      folder.open()
-      folder
-        .add(this.renderOnBlur, 'activated')
-        .name('Render on window blur')
-    }
   }
   setCamera() {
     // Create camera instance
@@ -82,9 +89,47 @@ export default class App {
       time: this.time,
       debug: this.debug,
       assets: this.assets,
+      camera: this.camera,
     })
     // Add world to scene
     this.scene.add(this.world.container)
+  }
+  setComposer() {
+    this.renderScene = new RenderPass(this.scene, this.camera.camera)
+
+    this.bloomPass = new UnrealBloomPass(
+      new Vector2(this.sizes.viewport.width, this.sizes.viewport.height),
+      this.params.bloomStrength,
+      this.params.bloomRadius,
+      this.params.bloomThreshold
+    )
+
+    this.composer = new EffectComposer(this.renderer)
+    this.composer.addPass(this.renderScene)
+    this.composer.addPass(this.bloomPass)
+
+    this.composer.renderer.outputEncoding = sRGBEncoding
+    this.composer.renderer.toneMapping = ReinhardToneMapping
+
+    if (this.debug) {
+      const folder = this.debug.addFolder('Renderer')
+      folder.open()
+      folder.add(this.params, 'exposure', 0.1, 2).onChange((value) => {
+        this.renderer.toneMappingExposure = Math.pow(value, 4.0)
+      })
+      folder.add(this.params, 'bloomThreshold', 0.0, 1.0).onChange((value) => {
+        this.bloomPass.threshold = Number(value)
+      })
+      folder.add(this.params, 'bloomStrength', 0.0, 3.0).onChange((value) => {
+        this.bloomPass.strength = Number(value)
+      })
+      folder
+        .add(this.params, 'bloomRadius', 0.0, 1.0)
+        .step(0.01)
+        .onChange((value) => {
+          this.bloomPass.radius = Number(value)
+        })
+    }
   }
   setConfig() {
     if (window.location.hash === '#debug') {

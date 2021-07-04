@@ -3,6 +3,13 @@
   "version": "3.0.1",
   "description": "Three template",
   "main": "index.js",
+  "dependencies": {
+    "glsl-hsl2rgb": "^1.1.0",
+    "glsl-noise": "^0.0.0",
+    "glslify": "^7.1.1",
+    "gsap": "^3.5.1",
+    "noise-library": "^1.0.1"
+  },
   "devDependencies": {
     "@babel/core": "^7.13.1",
     "@babel/preset-env": "^7.13.5",
@@ -36,7 +43,6 @@
     "webpack-merge": "^5.7.3"
   },
   "scripts": {
-    "init": "sh ./init.sh",
     "build": "webpack --config ./bundler/webpack.prod.js",
     "watch": "webpack --watch --config ./bundler/webpack.prod.js",
     "dev": "webpack serve --config ./bundler/webpack.dev.js --client-log-level warning",
